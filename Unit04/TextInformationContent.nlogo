@@ -1,67 +1,104 @@
-breed [bunnies bunny]
-globals [last-count]
+extensions [table]
 
-Bunnies-own [old]
+globals [txt freq-table probabilty-table word-count Max-Word-Count]
+to startup
+  ca
+  set input ""
+end 
 
 to setup
   ca
-  let one-patch (patch-set patch 0 0)
-  ask one-patch [sprout-bunnies initial-population [set old false set shape "bunny2" set color white set size 4 disperse]]
-end
+  set Max-Word-Count 1000  
 
-to reproduce
-  if (count bunnies) > 0
-  [
-    ask bunnies [ set old true ]
-    set last-count count bunnies
-    ask one-of bunnies [ hatch-bunnies how-many-to-hatch  [ disperse ] ]  ;Ok, Not too realistic to have one bunny do all the reproductive work ... but easier to code.
-    ask bunnies with [old] [die]
-    do-plotting
+
+  set txt input
+  build-frequency-table list-of-words
+  build-probability-table 
+  sort-list
+  plot-frequencies
+  list-most-frequent-words
+
+ 
+end 
+to-report list-of-words
+  let $txt txt
+  set $txt word $txt " "  ; add space  for loop termination
+  let words []  ; list of values
+  while [not empty? $txt]
+  [ let n position " " $txt
+    ;show word "n: " n
+    let $item substring $txt 0 n  ; extract item
+    if not empty? $item [if member? last $item ".,?!;:" [set $item butlast $item ] ] ; strip trailing punctuation 
+    ;carefully [set $item read-from-string $item ][ ] ; convert if number
+    carefully [if member? first $item " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890" [set words lput $item words]][]  ; append to list, ingnore cr/lfs
+    set $txt substring $txt (n + 1) length $txt  ; remove $item and space
   ]
+  report words
+  print ""  
 end
 
-to-report how-many-to-hatch
-  let pop (count bunnies)
-  let new-pop (birthrate - deathrate) * (pop  - ((pop * pop) / carrying-capacity))
-  report round new-pop
+to build-frequency-table [#word]
+  set freq-table table:make
+  set probabilty-table table:make
+  set word-count 0
+  foreach #word [
+    set word-count word-count + 1  ;; find total count of words
+    if word-count >= Max-Word-Count [stop]
+    ifelse table:has-key? freq-table ?  [let i table:get freq-table ? table:put freq-table ? i + 1 ] [table:put freq-table ? 1]
+    ]
+  
 end
 
-to disperse
-  set size size * .98 set heading random 360
-  let new-x random max-pxcor
-  let new-y random max-pycor
-  let x-sign random 2
-  let y-sign random 2
-  ifelse (x-sign = 0) [set  xcor 0 - new-x] [set xcor new-x]
-  ifelse (y-sign = 0) [set ycor 0 - new-y] [set ycor new-y]
-  set old false
-end
+to build-probability-table
+  foreach table:keys freq-table [ table:put probabilty-table ? table:get freq-table ? * (1 / word-count) ]
+  
+  ;print freq-table 
+  ;print probabilty-table 
+end 
+  
+  
+to-report H
+  let sum-plogp 0
+  foreach table:keys probabilty-table
+   [ 
+     let p table:get probabilty-table ?  
+     set sum-plogp  sum-plogp  + -1 * p * log p 2
+   ]
+   report sum-plogp
+end 
 
-to do-plotting
-  set-current-plot "Population vs. Time"
-  plot count bunnies
+to plot-frequencies
+  foreach table:keys freq-table [plot table:get freq-table ? ]
+end 
 
-  set-current-plot "This year's pop. vs. last year's pop."
-  plotxy last-count count bunnies
+to sort-list
+  let freq-list []
+  foreach table:keys freq-table [ set freq-list lput list ? table:get freq-table ?  freq-list  ] ;builds a list version of the table.
+  set freq-table table:from-list sort-by [last ?1 > last ?2] freq-list ;sort list by frequency counts and recreates table.
+end 
 
-end
+to list-most-frequent-words
+  let i 0
+  foreach table:keys freq-table [ output-print (word table:get freq-table ? " x \"" ? "\"") set i i + 1 if i > 17 [output-print "... etc.. " stop]]
+  
+end 
 @#$#@#$#@
 GRAPHICS-WINDOW
-235
-10
-736
-532
+581
+38
+1024
+502
 16
 16
-14.9
+13.121212121212121
 1
 10
 1
 1
 1
 0
-0
-0
+1
+1
 1
 -16
 16
@@ -73,40 +110,24 @@ GRAPHICS-WINDOW
 ticks
 30.0
 
-TEXTBOX
-8
-10
-158
-32
-Logistic Model
-18
-95.0
+INPUTBOX
+15
+157
+552
+499
+input
+NIL
 1
+0
+String
 
 BUTTON
 13
-173
-118
-206
-Reproduce
-reproduce
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-13
-132
-79
-165
-Setup
-setup\n
+98
+87
+148
+Go
+setup
 NIL
 1
 T
@@ -118,215 +139,154 @@ NIL
 1
 
 MONITOR
-45
-391
-147
-436
-NIL
-count bunnies
-17
+462
+83
+557
+128
+H
+H
+4
 1
 11
 
 PLOT
-735
-12
-1094
-173
-Population vs. Time
-Time
-Population
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"" 1.0 0 -16777216 true "" "plot count turtles"
-
-SLIDER
-14
-256
-186
-289
-birthrate
-birthrate
-0
-5.0
-2
-0.1
-1
-NIL
-HORIZONTAL
-
-PLOT
-737
-181
-1096
-341
-This year's pop. vs. last year's pop.
-Last year's pop.
-This year's pop.
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"pen-0" 1.0 0 -7500403 true "" "plotxy last-count count bunnies"
-
-SLIDER
-14
-344
-188
-377
-carrying-capacity
-carrying-capacity
-0
-100
-50
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-14
-215
-186
-248
-initial-population
-initial-population
-0
+578
 20
-1
-1
-1
+1090
+503
+Word Frequencies
 NIL
-HORIZONTAL
-
-TEXTBOX
-6
-45
-376
-105
-n      = (birthrate - deathrate) * (n  - (n    / k)),\n\nwhere k is the carrying capacity.
-10
-0.0
-1
-
-TEXTBOX
-13
-50
-34
-68
-t+1
-8
-0.0
-1
-
-TEXTBOX
-173
-52
-188
-70
-t
-8
-0.0
-1
-
-TEXTBOX
-199
-51
-214
-69
-t
-8
-0.0
-1
-
-TEXTBOX
-197
-42
-212
-60
-2
-8
-0.0
-1
-
-SLIDER
-13
-298
-186
-331
-deathrate
-deathrate
-0
-5.0
-0
-0.1
-1
 NIL
-HORIZONTAL
-
-PLOT
-747
-351
-947
-501
-Normalized Logistic Model
-Xt
-Xt+1
 0.0
-1.0
+10.0
 0.0
-1.0
+10.0
 true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plotxy last-count count bunnies"
+"default" 1.0 1 -16777216 true "" ""
+
+TEXTBOX
+11
+20
+316
+55
+Information Content of a Text
+18
+95.0
+1
+
+TEXTBOX
+101
+65
+353
+123
+Paste text in the input window below.  Word count will show you how many words or elements have been entered. All samples will be limited to 1000 words. 
+11
+0.0
+1
+
+MONITOR
+370
+83
+455
+128
+Word count
+word-count
+17
+1
+11
+
+OUTPUT
+822
+49
+1077
+380
+12
+
+TEXTBOX
+1106
+92
+1274
+134
+NIL
+11
+0.0
+1
+
+TEXTBOX
+377
+32
+546
+83
+Information content (H) is measured in bits. 
+14
+0.0
+1
+
+BUTTON
+13
+63
+86
+96
+Reset
+Startup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
 
-This model illustrates population growth using the logistic model.
+This is a tool to calculate the Shannon information content (H) of any text.  
+
+Shannon information content is usually expressed by the average number of bits needed to store or communicate one symbol in a message. This measure of information content quantifies the uncertainty involved in predicting the value of a future event (or random variable). 
 
 ## HOW IT WORKS
 
-The model counts the number of rabbits at the end of each generation and then produces the correct number the following generation. To keep the math simple, there is no over-lapping of generations–that is, all the rabbits from one year replace themselves with offspring (according to the growth rate seting) and then perish.
+This tool accepts text as input and calculates the frequency with which each word occurs. A "frequency table" is built. The parsing is quite crude, "The" is considered to be a different word from "the". After calculating frequencies, a second table is built, called "probability table". This table holds the probability of encountering any particular word in the text if you were to be given a single word at random from the text. The probability for each word is calculated by dividing the frequency count of any word by the total words in the message. 
+
+The probabilities from the probability table are used to build the sum that is H. This is done by taking the sum of probability of each element times the log of the probability and multiplying by negative 1. In other words, sum of - p log p over all elements in the message. 
 
 
 ## HOW TO USE IT
 
-To use the model, press “setup” and then “reproduce”. Each time you press “reproduce” a generation of rabbits will be born.
+Load text and press "Go". Alternatively, use the buttons on the right to load sample text. 
+
+## THINGS TO NOTICE
+Notice the use of the table extension. This data structure make it much easier to organize the tables of information that we create to store frequency and probability data. Each table simply a set of ordered pairs  Key  ---> Value. To find the value of an Key use the table:get  primitive. 
+
+## THINGS TO TRY/EXTENDING THE MODEL
+
+Improvements to the parser could certainly be made. Also, more interesting ways to visualize the entropy of different contexts would be valuable.
 
 ## CREDITS AND REFERENCES
 
-This model is part of the Dynamics series of the Complexity Explorer project.
+This model is part of the Information Theory series of the Complexity Explorer project. 
+ 
+Main Author: John Balwit
 
-Main Author:  John Balwit
-
-Contributions from: Melanie Mitchell
+Contributions from:  Melanie Mitchell
 
 Netlogo:  Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
 
 
 ## HOW TO CITE
 
-If you use this model, please cite it as: "Logistic Population Growth" model, Complexity Explorer project, http://complexityexplorer.org
+If you use this model, please cite it as: "Text Information Content" model, Complexity Explorer project, http://complexityexplorer.org
 
 ## COPYRIGHT AND LICENSE
 
-Copyright 2013 Santa Fe Institute.
+Copyright 2014 Santa Fe Institute.
 
-This model is licensed by the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 License ( http://creativecommons.org/licenses/by-nc-nd/3.0/ ). This states that you may copy, distribute, and transmit the work under the condition that you give attribution to ComplexityExplorer.org, and your use is for non-commercial purposes.
-
+This model is licensed by the Creative Commons Attribution-NonCommercial-ShareAlike  License ( http://creativecommons.org/licenses/by-nc-sa/4.0/ ). This states that you may copy, distribute, and transmit the work under the condition that you give attribution to ComplexityExplorer.org, your use is for non-commercial purposes, and you release any work derived from this work under the same license agreement.
 @#$#@#$#@
 default
 true
@@ -361,30 +321,6 @@ Circle -7500403 true true 110 127 80
 Circle -7500403 true true 110 75 80
 Line -7500403 true 150 100 80 30
 Line -7500403 true 150 100 220 30
-
-bunny2
-false
-0
-Polygon -7500403 true true 61 150 76 180 91 195 103 214 90 225 76 255 90 255 105 240 132 209 151 210 181 210 195 225 196 255 181 255 180 255 165 255 166 270 211 270 241 255 240 210 255 210 255 165 225 135 210 120 165 105 91 105
-Polygon -7500403 true true 90 164 109 104 85 82 60 89 34 104 19 149 34 164 52 162 74 153
-Polygon -7500403 true true 64 98 96 87 135 45 130 15 97 36 54 86
-Polygon -7500403 true true 34 89 42 47 60 15 90 15 55 88
-Circle -16777216 true false 37 103 16
-Line -16777216 false 44 150 104 150
-Line -16777216 false 39 158 84 175
-Line -16777216 false 29 159 57 195
-Polygon -5825686 true false 15 150 30 165 30 150
-Polygon -5825686 true false 76 90 97 47 130 32
-Line -16777216 false 180 210 165 180
-Line -16777216 false 165 180 180 165
-Line -16777216 false 180 165 225 165
-Line -16777216 false 180 210 195 225
-Circle -7500403 true true 15 60 88
-Rectangle -7500403 true true 180 150 225 180
-Circle -16777216 true false 30 90 30
-Circle -7500403 true true 234 144 42
-Circle -7500403 true true 120 15 30
-Circle -7500403 true true 60 0 30
 
 butterfly
 true
@@ -544,24 +480,6 @@ Polygon -7500403 true true 135 105 90 60 45 45 75 105 135 135
 Polygon -7500403 true true 165 105 165 135 225 105 255 45 210 60
 Polygon -7500403 true true 135 90 120 45 150 15 180 45 165 90
 
-rabbit
-false
-0
-Polygon -7500403 true true 61 150 76 180 91 195 103 214 91 240 76 255 61 270 76 270 106 255 132 209 151 210 181 210 211 240 196 255 181 255 166 247 151 255 166 270 211 270 241 255 240 210 270 225 285 165 256 135 226 105 166 90 91 105
-Polygon -7500403 true true 75 164 94 104 70 82 45 89 19 104 4 149 19 164 37 162 59 153
-Polygon -7500403 true true 64 98 96 87 138 26 130 15 97 36 54 86
-Polygon -7500403 true true 49 89 57 47 78 4 89 20 70 88
-Circle -16777216 true false 37 103 16
-Line -16777216 false 44 150 104 150
-Line -16777216 false 39 158 84 175
-Line -16777216 false 29 159 57 195
-Polygon -5825686 true false 0 150 15 165 15 150
-Polygon -5825686 true false 76 90 97 47 130 32
-Line -16777216 false 180 210 165 180
-Line -16777216 false 165 180 180 165
-Line -16777216 false 180 165 225 165
-Line -16777216 false 180 210 210 240
-
 sheep
 false
 0
@@ -655,6 +573,15 @@ Line -7500403 true 40 84 269 221
 Line -7500403 true 40 216 269 79
 Line -7500403 true 84 40 221 269
 
+wolf
+false
+0
+Polygon -7500403 true true 135 285 195 285 270 90 30 90 105 285
+Polygon -7500403 true true 270 90 225 15 180 90
+Polygon -7500403 true true 30 90 75 15 120 90
+Circle -1 true false 183 138 24
+Circle -1 true false 93 138 24
+
 x
 false
 0
@@ -662,7 +589,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.3.1
+NetLogo 5.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

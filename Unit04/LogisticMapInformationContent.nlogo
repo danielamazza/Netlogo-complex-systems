@@ -1,96 +1,192 @@
-breed [bunnies bunny]
-globals [last-count]
-
-Bunnies-own [old]
+globals [x-current x-new x-current' x-new' num-turtles-created turtlex0-who turtlex0'-who 
+         current-symbol num-zeros num-ones zero-prob one-prob total-num-symbols info-content]
 
 to setup
-  ca
-  let one-patch (patch-set patch 0 0)
-  ask one-patch [sprout-bunnies initial-population [set old false set shape "bunny2" set color white set size 4 disperse]]
+  ;; (for this model to work with NetLogo's new plotting features,
+  ;; __clear-all-and-reset-ticks should be replaced with clear-all at
+  ;; the beginning of your setup procedure and reset-ticks at the end
+  ;; of the procedure.)
+  __clear-all-and-reset-ticks
+  clear-output
+  set num-turtles-created -1; first turtle created will be number 0
+  draw-axes
+  draw-parabola 
+           
+  set x-current x0
+  set x-new (R * x-current * (1 - x-current))  ; logistic map
+  
+  ; Set up variables for measuring information content
+  set num-zeros 0
+  set num-ones 0
+  set total-num-symbols 0
+  update-info-content
+ 
+  
+  create-turtles 1; this turtle will plot x_{t+1} vs x_t using initial condition x0
+  [
+    set color blue
+    set xcor (x-current * max-pxcor)
+    set ycor (x-new * max-pycor)
+    set shape "dot"
+    set size 3
+  ]    
+  set num-turtles-created num-turtles-created + 1
+  set turtlex0-who num-turtles-created   ; "id number" for this turtle
+ 
+  setup-plot-info-content
+  update-plot-info-content
+  setup-plot-logistic
+  update-plot-logistic
+ 
 end
 
-to reproduce
-  if (count bunnies) > 0
+to go
+  iterate  ; do one iteration of logistic map
+  tick  ; increase tick number by 1
+end
+
+to iterate
+  set x-current x-new
+  set x-new (R * x-current * (1 - x-current))  ; one iteration of logistic map
+  ask turtle turtlex0-who
   [
-    ask bunnies [ set old true ]
-    set last-count count bunnies
-    ask one-of bunnies [ hatch-bunnies how-many-to-hatch  [ disperse ] ]  ;Ok, Not too realistic to have one bunny do all the reproductive work ... but easier to code.
-    ask bunnies with [old] [die]
-    do-plotting
+      set xcor (x-current * max-pxcor)  ; update coordinates for turtle representing first initial condition
+      set ycor (x-new * max-pycor) 
+  ]
+  update-plot-logistic
+  update-info-content
+  update-plot-info-content
+end
+
+to update-info-content
+ ; Update variables for measuring information content
+  ifelse (x-new < 0.5) 
+    [
+    set current-symbol 0
+    set num-zeros (num-zeros + 1)
+    ]
+    [
+    set current-symbol 1
+    set num-ones (num-ones + 1)
+    ]
+    output-write current-symbol
+  set total-num-symbols (total-num-symbols + 1)
+  set zero-prob (num-zeros / total-num-symbols)
+  set one-prob (num-ones / total-num-symbols)
+  ifelse zero-prob = 0 or one-prob = 0
+    [set info-content 0]
+    [set info-content (0 - ((zero-prob * (log zero-prob 2)) + (one-prob * (log one-prob 2))))] 
+end
+
+to draw-axes   ; draws x and y axes
+  ask patches 
+    [set pcolor white]
+  create-turtles 1
+  set num-turtles-created num-turtles-created + 1
+  ask turtles
+  [
+    set color black
+    set xcor min-pxcor 
+    set ycor min-pycor 
+    set heading 0
+    pen-down
+    fd max-pycor   ; draw y axis
+    pen-up
+    set xcor min-pxcor 
+    set ycor min-pycor
+    set heading 90
+    pen-down
+    fd max-pxcor  ; draw x axis
+    die
   ]
 end
 
-to-report how-many-to-hatch
-  let pop (count bunnies)
-  let new-pop (birthrate - deathrate) * (pop  - ((pop * pop) / carrying-capacity))
-  report round new-pop
+to draw-parabola  ; draws parabola representing logistic map for given value of R
+ let x 0
+ let y 0
+ create-turtles 1 
+ set num-turtles-created num-turtles-created + 1
+  ask turtles 
+  [
+    set color black
+    set xcor x * min-pxcor
+    set ycor y * min-pycor
+    pen-down
+  ]
+  repeat 10000
+  [
+    set x (x + .0001)
+    ask turtles
+    [
+      set xcor (x * max-pxcor)
+      set ycor (R * x * (1 - x)) * max-pycor
+    ]
+  ]
+  ask turtles [die]
 end
 
-to disperse
-  set size size * .98 set heading random 360
-  let new-x random max-pxcor
-  let new-y random max-pycor
-  let x-sign random 2
-  let y-sign random 2
-  ifelse (x-sign = 0) [set  xcor 0 - new-x] [set xcor new-x]
-  ifelse (y-sign = 0) [set ycor 0 - new-y] [set ycor new-y]
-  set old false
+
+
+    
+;;plotting procedures -------------------
+
+to setup-plot-logistic
+  set-current-plot "logistic map"
+  set-plot-x-range  0 1
+  set-plot-y-range  0 1
 end
 
-to do-plotting
-  set-current-plot "Population vs. Time"
-  plot count bunnies
+to setup-plot-info-content
+  set-current-plot "information content"
+  set-plot-x-range  0 10
+  set-plot-y-range  0 1
+end
 
-  set-current-plot "This year's pop. vs. last year's pop."
-  plotxy last-count count bunnies
+to update-plot-logistic
+  set-current-plot "logistic map"
+  plot x-current    
+end
 
+to update-plot-info-content
+  set-current-plot "information content"
+  plot info-content  
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-235
+393
 10
-736
-532
-16
-16
-14.9
+795
+433
+-1
+-1
+11.9
 1
 10
 1
 1
 1
 0
-0
-0
 1
--16
-16
--16
-16
+1
+1
+0
+32
+0
+32
 0
 0
 1
 ticks
 30.0
 
-TEXTBOX
-8
-10
-158
-32
-Logistic Model
-18
-95.0
-1
-
 BUTTON
-13
-173
-118
-206
-Reproduce
-reproduce
+91
+63
+154
+96
 NIL
+go
+T
 1
 T
 OBSERVER
@@ -101,187 +197,100 @@ NIL
 1
 
 BUTTON
-13
+29
+63
+92
+96
+NIL
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+16
+99
+188
 132
-79
-165
-Setup
-setup\n
-NIL
+R
+R
+0
+4
+3.51
+0.01
 1
-T
-OBSERVER
 NIL
-NIL
-NIL
-NIL
+HORIZONTAL
+
+SLIDER
+16
+131
+188
+164
+x0
+x0
+0
 1
+0.2
+0.00000001
+1
+NIL
+HORIZONTAL
+
+PLOT
+10
+254
+379
+383
+logistic map
+time t (* 10)
+x_t
+0.0
+1.0
+0.0
+1.0
+true
+false
+"" ""
+PENS
+"initial condition x0" 0.1 0 -13345367 true "" ""
 
 MONITOR
-45
-391
-147
-436
-NIL
-count bunnies
-17
+26
+168
+101
+213
+x_t
+x-current
+8
+1
+11
+
+MONITOR
+99
+168
+172
+213
+x_{t+1}
+x-new
+8
 1
 11
 
 PLOT
-735
-12
-1094
-173
-Population vs. Time
-Time
-Population
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"" 1.0 0 -16777216 true "" "plot count turtles"
-
-SLIDER
-14
-256
-186
-289
-birthrate
-birthrate
-0
-5.0
-2
-0.1
-1
-NIL
-HORIZONTAL
-
-PLOT
-737
-181
-1096
-341
-This year's pop. vs. last year's pop.
-Last year's pop.
-This year's pop.
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"pen-0" 1.0 0 -7500403 true "" "plotxy last-count count bunnies"
-
-SLIDER
-14
-344
-188
-377
-carrying-capacity
-carrying-capacity
-0
-100
-50
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-14
-215
-186
-248
-initial-population
-initial-population
-0
-20
-1
-1
-1
-NIL
-HORIZONTAL
-
-TEXTBOX
-6
-45
-376
-105
-n      = (birthrate - deathrate) * (n  - (n    / k)),\n\nwhere k is the carrying capacity.
 10
-0.0
-1
-
-TEXTBOX
-13
-50
-34
-68
-t+1
-8
-0.0
-1
-
-TEXTBOX
-173
-52
-188
-70
-t
-8
-0.0
-1
-
-TEXTBOX
-199
-51
-214
-69
-t
-8
-0.0
-1
-
-TEXTBOX
-197
-42
-212
-60
-2
-8
-0.0
-1
-
-SLIDER
-13
-298
-186
-331
-deathrate
-deathrate
-0
-5.0
-0
-0.1
-1
-NIL
-HORIZONTAL
-
-PLOT
-747
-351
-947
-501
-Normalized Logistic Model
-Xt
-Xt+1
+383
+378
+521
+information content
+time (* 10)
+H (estimated)
 0.0
 1.0
 0.0
@@ -290,43 +299,121 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plotxy last-count count bunnies"
+"default" 1.0 0 -16777216 true "" ""
+
+MONITOR
+194
+151
+381
+196
+number of symbols seen so far
+total-num-symbols
+0
+1
+11
+
+MONITOR
+263
+62
+359
+107
+probability of 0
+zero-prob
+2
+1
+11
+
+MONITOR
+262
+106
+358
+151
+probability of 1
+one-prob
+2
+1
+11
+
+MONITOR
+194
+195
+381
+240
+Information content H (estimated)
+info-content
+2
+1
+11
+
+MONITOR
+193
+62
+264
+107
+NIL
+num-zeros
+0
+1
+11
+
+MONITOR
+194
+106
+264
+151
+NIL
+num-ones
+0
+1
+11
+
+OUTPUT
+395
+438
+797
+499
+10
+
+TEXTBOX
+25
+10
+346
+53
+Logistic Map:  Shannon Information Content of Symbolic Dynamics
+18
+95.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
 
-This model illustrates population growth using the logistic model.
-
-## HOW IT WORKS
-
-The model counts the number of rabbits at the end of each generation and then produces the correct number the following generation. To keep the math simple, there is no over-lapping of generations–that is, all the rabbits from one year replace themselves with offspring (according to the growth rate seting) and then perish.
+This model calculates the Shannon information content of the "symbolic dynamics" of the logistic map, x_{t+1} = R x_t (1 - x_t), where x_t is the value of x at time step t, and x_{t+1} is the value of x at the next time step. x is always between 0 and 1.   R is a control parameter that ranges from 0 to 4.  The symbolic dynamics is calculated as follows:  At each time step in the logistic map, whenever xt is less than 0.5, a "0" is output; otherwise a "1" is output.   The Shannon information content H of the cumulative symbolic dynamics is estmated at each time step as 
+	H = - [(probability_0 * log_2 probability_0) 
+		+ (probability_1 * log_2 probability_1)]
 
 
 ## HOW TO USE IT
 
-To use the model, press “setup” and then “reproduce”. Each time you press “reproduce” a generation of rabbits will be born.
+Use the sliders to set R and x_0.
+    Click on "setup" to draw the axes and the parabola representing the function y = R x (1 - x).  Click on "go" to do successive iterations of the logistic map.  
 
 ## CREDITS AND REFERENCES
 
-This model is part of the Dynamics series of the Complexity Explorer project.
-
-Main Author:  John Balwit
-
-Contributions from: Melanie Mitchell
+This model is part of the Information Theory series of the Complexity Explorer project.  
+Main Author: Melanie Mitchell
 
 Netlogo:  Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
 
 
 ## HOW TO CITE
 
-If you use this model, please cite it as: "Logistic Population Growth" model, Complexity Explorer project, http://complexityexplorer.org
+If you use this model, please cite it as: "Logistic Map Information Content" model, Complexity Explorer project, http://complexityexplorer.org
 
 ## COPYRIGHT AND LICENSE
 
-Copyright 2013 Santa Fe Institute.
+Copyright 2014 Santa Fe Institute.
 
-This model is licensed by the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 License ( http://creativecommons.org/licenses/by-nc-nd/3.0/ ). This states that you may copy, distribute, and transmit the work under the condition that you give attribution to ComplexityExplorer.org, and your use is for non-commercial purposes.
-
+This model is licensed by the Creative Commons Attribution-NonCommercial-ShareAlike  License ( http://creativecommons.org/licenses/by-nc-sa/4.0/ ). This states that you may copy, distribute, and transmit the work under the condition that you give attribution to ComplexityExplorer.org, your use is for non-commercial purposes, and you release any work derived from this work under the same license agreement.
 @#$#@#$#@
 default
 true
@@ -361,30 +448,6 @@ Circle -7500403 true true 110 127 80
 Circle -7500403 true true 110 75 80
 Line -7500403 true 150 100 80 30
 Line -7500403 true 150 100 220 30
-
-bunny2
-false
-0
-Polygon -7500403 true true 61 150 76 180 91 195 103 214 90 225 76 255 90 255 105 240 132 209 151 210 181 210 195 225 196 255 181 255 180 255 165 255 166 270 211 270 241 255 240 210 255 210 255 165 225 135 210 120 165 105 91 105
-Polygon -7500403 true true 90 164 109 104 85 82 60 89 34 104 19 149 34 164 52 162 74 153
-Polygon -7500403 true true 64 98 96 87 135 45 130 15 97 36 54 86
-Polygon -7500403 true true 34 89 42 47 60 15 90 15 55 88
-Circle -16777216 true false 37 103 16
-Line -16777216 false 44 150 104 150
-Line -16777216 false 39 158 84 175
-Line -16777216 false 29 159 57 195
-Polygon -5825686 true false 15 150 30 165 30 150
-Polygon -5825686 true false 76 90 97 47 130 32
-Line -16777216 false 180 210 165 180
-Line -16777216 false 165 180 180 165
-Line -16777216 false 180 165 225 165
-Line -16777216 false 180 210 195 225
-Circle -7500403 true true 15 60 88
-Rectangle -7500403 true true 180 150 225 180
-Circle -16777216 true false 30 90 30
-Circle -7500403 true true 234 144 42
-Circle -7500403 true true 120 15 30
-Circle -7500403 true true 60 0 30
 
 butterfly
 true
@@ -544,33 +607,6 @@ Polygon -7500403 true true 135 105 90 60 45 45 75 105 135 135
 Polygon -7500403 true true 165 105 165 135 225 105 255 45 210 60
 Polygon -7500403 true true 135 90 120 45 150 15 180 45 165 90
 
-rabbit
-false
-0
-Polygon -7500403 true true 61 150 76 180 91 195 103 214 91 240 76 255 61 270 76 270 106 255 132 209 151 210 181 210 211 240 196 255 181 255 166 247 151 255 166 270 211 270 241 255 240 210 270 225 285 165 256 135 226 105 166 90 91 105
-Polygon -7500403 true true 75 164 94 104 70 82 45 89 19 104 4 149 19 164 37 162 59 153
-Polygon -7500403 true true 64 98 96 87 138 26 130 15 97 36 54 86
-Polygon -7500403 true true 49 89 57 47 78 4 89 20 70 88
-Circle -16777216 true false 37 103 16
-Line -16777216 false 44 150 104 150
-Line -16777216 false 39 158 84 175
-Line -16777216 false 29 159 57 195
-Polygon -5825686 true false 0 150 15 165 15 150
-Polygon -5825686 true false 76 90 97 47 130 32
-Line -16777216 false 180 210 165 180
-Line -16777216 false 165 180 180 165
-Line -16777216 false 180 165 225 165
-Line -16777216 false 180 210 210 240
-
-sheep
-false
-0
-Rectangle -7500403 true true 151 225 180 285
-Rectangle -7500403 true true 47 225 75 285
-Rectangle -7500403 true true 15 75 210 225
-Circle -7500403 true true 135 75 150
-Circle -16777216 true false 165 76 116
-
 square
 false
 0
@@ -662,7 +698,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.3.1
+NetLogo 5.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

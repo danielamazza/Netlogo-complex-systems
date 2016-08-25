@@ -1,59 +1,53 @@
-breed [bunnies bunny]
-globals [last-count]
-
-Bunnies-own [old]
+;; We use the built-in turtle variable SIZE to make the line
+;; segment have the appropriate length.  Because the "segment"
+;; shape extends from the center of the turtle to its edge,
+;; rather than from edge to edge, we need to set the size
+;; to twice the segment length in order for the turtles to
+;; appear the right size.  This is why we multiple or divide
+;; by two in several places in the following code.
 
 to setup
-  ca
-  let one-patch (patch-set patch 0 0)
-  ask one-patch [sprout-bunnies initial-population [set old false set shape "bunny2" set color white set size 4 disperse]]
+  clear-all
+  set-default-shape turtles "segment"
+  create-turtles 1
+    [ setxy min-pxcor       ;; start turtle in lower left corner
+            min-pycor + 10
+      set heading 90                ;; facing right
+      set color white
+      set size (world-width * 2) ]
+  reset-ticks
 end
 
-to reproduce
-  if (count bunnies) > 0
-  [
-    ask bunnies [ set old true ]
-    set last-count count bunnies
-    ask one-of bunnies [ hatch-bunnies how-many-to-hatch  [ disperse ] ]  ;Ok, Not too realistic to have one bunny do all the reproductive work ... but easier to code.
-    ask bunnies with [old] [die]
-    do-plotting
-  ]
+to step
+  ask turtles [ iterate ]
+  tick
 end
 
-to-report how-many-to-hatch
-  let pop (count bunnies)
-  let new-pop (birthrate - deathrate) * (pop  - ((pop * pop) / carrying-capacity))
-  report round new-pop
+to iterate
+  set size size / 3
+  hatch 1 
+  fd size / 2
+  lt 60
+  hatch 1
+  fd size / 2
+  rt 120
+  hatch 1
+  fd size / 2
+  lt 60
 end
 
-to disperse
-  set size size * .98 set heading random 360
-  let new-x random max-pxcor
-  let new-y random max-pycor
-  let x-sign random 2
-  let y-sign random 2
-  ifelse (x-sign = 0) [set  xcor 0 - new-x] [set xcor new-x]
-  ifelse (y-sign = 0) [set ycor 0 - new-y] [set ycor new-y]
-  set old false
-end
 
-to do-plotting
-  set-current-plot "Population vs. Time"
-  plot count bunnies
-
-  set-current-plot "This year's pop. vs. last year's pop."
-  plotxy last-count count bunnies
-
-end
+; Copyright 1998 Uri Wilensky.
+; See Info tab for full copyright and license.
 @#$#@#$#@
 GRAPHICS-WINDOW
-235
+215
 10
-736
-532
-16
-16
-14.9
+921
+301
+121
+45
+2.8642
 1
 10
 1
@@ -63,270 +57,208 @@ GRAPHICS-WINDOW
 0
 0
 1
--16
-16
--16
-16
-0
-0
+-121
+121
+-45
+45
+1
+1
 1
 ticks
 30.0
 
+BUTTON
+12
+113
+93
+146
+Set Up
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+12
+113
+93
+146
+Set Up
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+12
+113
+93
+146
+Set Up
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+12
+113
+93
+146
+setup
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+100
+113
+182
+146
+NIL
+step
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
 TEXTBOX
-8
-10
-158
-32
-Logistic Model
+17
+12
+167
+34
+Koch Curve
 18
 95.0
 1
 
-BUTTON
-13
-173
-118
-206
-Reproduce
-reproduce
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-13
-132
-79
-165
-Setup
-setup\n
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-MONITOR
-45
-391
-147
-436
-NIL
-count bunnies
+TEXTBOX
 17
-1
+50
+167
+97
+Click \"setup\" to start with the 0th level.    Click \"step\" to iterate to the next level.  
 11
-
-PLOT
-735
-12
-1094
-173
-Population vs. Time
-Time
-Population
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"" 1.0 0 -16777216 true "" "plot count turtles"
-
-SLIDER
-14
-256
-186
-289
-birthrate
-birthrate
-0
-5.0
-2
-0.1
-1
-NIL
-HORIZONTAL
-
-PLOT
-737
-181
-1096
-341
-This year's pop. vs. last year's pop.
-Last year's pop.
-This year's pop.
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"pen-0" 1.0 0 -7500403 true "" "plotxy last-count count bunnies"
-
-SLIDER
-14
-344
-188
-377
-carrying-capacity
-carrying-capacity
-0
-100
-50
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-14
-215
-186
-248
-initial-population
-initial-population
-0
-20
-1
-1
-1
-NIL
-HORIZONTAL
-
-TEXTBOX
-6
-45
-376
-105
-n      = (birthrate - deathrate) * (n  - (n    / k)),\n\nwhere k is the carrying capacity.
-10
 0.0
 1
-
-TEXTBOX
-13
-50
-34
-68
-t+1
-8
-0.0
-1
-
-TEXTBOX
-173
-52
-188
-70
-t
-8
-0.0
-1
-
-TEXTBOX
-199
-51
-214
-69
-t
-8
-0.0
-1
-
-TEXTBOX
-197
-42
-212
-60
-2
-8
-0.0
-1
-
-SLIDER
-13
-298
-186
-331
-deathrate
-deathrate
-0
-5.0
-0
-0.1
-1
-NIL
-HORIZONTAL
-
-PLOT
-747
-351
-947
-501
-Normalized Logistic Model
-Xt
-Xt+1
-0.0
-1.0
-0.0
-1.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plotxy last-count count bunnies"
 
 @#$#@#$#@
 ## WHAT IS IT?
 
-This model illustrates population growth using the logistic model.
+Helge von Koch was a Swedish mathematician who, in 1904, introduced what is now called the Koch curve.  This curve contains no straight lines which are smooth in the sense that we could see them as a carefully bent line.   Rather this curve has much of the complexity which we could see in a natural coastline: folds within folds within folds and so on.
+
+Koch's motivation for finding this curve was to provide another example for the discovery made by the German mathematician Karl Weierstrass, who in 1872 had precipitated a minor crisis in mathematics.  He had described a curve that could not be differentiated (did not have a tangent) at any of its points.  The ability to differentiate is central to differential calculus and for a long time it was assumed that curves have tangent lines almost everywhere.
 
 ## HOW IT WORKS
 
-The model counts the number of rabbits at the end of each generation and then produces the correct number the following generation. To keep the math simple, there is no over-lapping of generations–that is, all the rabbits from one year replace themselves with offspring (according to the growth rate seting) and then perish.
+Here is a simple geometric construction of the Koch curve.  Begin with a straight line.  This initial object is also called the "initiator."  Partition it into three equal parts.  Then replace the middle third by an equilateral triangle and take away its base.  This completes the basic construction step.  A reduction of this figure, made of four parts, will be used in the following stages.  It is called the "generator."  Thus, we now repeat, taking each of the resulting line segments and partitioning them into three equal parts, and so on.  The figure below illustrates this iterative process.
 
+
+      ________________________     Step 0: "Initiator"
+    
+                 /\
+                /  \
+               /    \
+              /      \
+      _______/        \_______     Step 1: "Generator"
+    
+                 /\
+              __/  \__
+              \      /
+              /      \
+      ___/\__/        \__/\___     Step 2
+
+Self-similarity is built into the construction process.  Each part of the four parts in the k-th step is again a version scaled down by the factor of 3 of the entire curve in the previous (k-1)-st step.
+
+Let us now discuss the length of the Koch curve.  After the first iteration we have a curve which is made of four line segments of the same length, after the second iteration we will have each of the four segments broken into four more segments i.e. sixteen segments and so on.  After each iteration we increase the number of segments by the factor of four.  If we denote the number of segments after k-steps by S(k) then mathematically:
+
+> S(k) = 4<sup>k</sup>
+
+Now if the initial segment had length L the length of each of the four segments obtained after the first stage would be L/3.  After the second step the length of each of the sixteen segments is (L/3)/3 or L/9.  Denoting the length of each segment during the k-th iteration by L(k) we may write:
+
+> L(k) = L / (3<sup>k</sup>)
+
+Multiplying the number of segments by the length of each segment we get the following expression for the length of the Koch curve after k steps of construction:
+
+> L * (4/3)<sup>k</sup>
+
+Clearly the length grows exponentially with the number of iterations so in fact the length of the entire Koch curve is infinite as is the arc length between any of its two points.  It therefore might come as a surprise that the area enclosed by the Koch curve is finite; the proof of this we leave as an exercise for the reader.
 
 ## HOW TO USE IT
 
-To use the model, press “setup” and then “reproduce”. Each time you press “reproduce” a generation of rabbits will be born.
+Reset the program by pushing the SETUP button.  This will clear the world, create the initiator and initialize the globals.  Press repeatedly on the STEP button.  Each time you press this button the construction algorithm is iterated and you will see successive approximations of the Koch curve.
 
-## CREDITS AND REFERENCES
+## THINGS TO NOTICE
 
-This model is part of the Dynamics series of the Complexity Explorer project.
+What happens to the total length of the curve as the iteration progresses?
 
-Main Author:  John Balwit
+## THINGS TO TRY
 
-Contributions from: Melanie Mitchell
+Try running the model through several iterations. Can you see how the recursive design is changing from one iteration to another? Note that each successive iteration takes longer to compute. Depending on the speed of your machine, high-numbered iterations could take a long time!
 
-Netlogo:  Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
+## EXTENDING THE MODEL
+
+You can combine three copies of the Koch curve to form a closed curve called the Koch snowflake. Try to write a program that draws this curve.
+
+Can you think of other initiators and generators? Try and implement a few. Can you characterize which initiators and generators lead to "interesting shapes"?
+
+## NETLOGO FEATURES
+
+Notice how the curves are made out of many turtles, all following the same rules.  Also, take note of the use of the `hatch` command to create all of the turtles by repeated "cloning" from a single seed turtle.
+
+The model looks like it uses links, but it doesn't.  To make circles and lines, it just uses a special turtle shape (a circle with a line sticking out of it).
 
 
 ## HOW TO CITE
 
-If you use this model, please cite it as: "Logistic Population Growth" model, Complexity Explorer project, http://complexityexplorer.org
+If you mention this model in a publication, we ask that you include these citations for the model itself and for the NetLogo software:
+
+* Wilensky, U. (1998).  NetLogo Koch Curve model.  http://ccl.northwestern.edu/netlogo/models/KochCurve.  Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
+* Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
 
 ## COPYRIGHT AND LICENSE
 
-Copyright 2013 Santa Fe Institute.
+Copyright 1998 Uri Wilensky.
 
-This model is licensed by the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 License ( http://creativecommons.org/licenses/by-nc-nd/3.0/ ). This states that you may copy, distribute, and transmit the work under the condition that you give attribution to ComplexityExplorer.org, and your use is for non-commercial purposes.
+![CC BY-NC-SA 3.0](http://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png)
 
+This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 License.  To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 559 Nathan Abbott Way, Stanford, California 94305, USA.
+
+Commercial licenses are also available. To inquire about commercial licenses, please contact Uri Wilensky at uri@northwestern.edu.
+
+This model was created as part of the project: CONNECTED MATHEMATICS: MAKING SENSE OF COMPLEX PHENOMENA THROUGH BUILDING OBJECT-BASED PARALLEL MODELS (OBPML).  The project gratefully acknowledges the support of the National Science Foundation (Applications of Advanced Technologies Program) -- grant numbers RED #9552950 and REC #9632612.
+
+This model was converted to NetLogo as part of the projects: PARTICIPATORY SIMULATIONS: NETWORK-BASED DESIGN FOR SYSTEMS LEARNING IN CLASSROOMS and/or INTEGRATED SIMULATION AND MODELING ENVIRONMENT. The project gratefully acknowledges the support of the National Science Foundation (REPP & ROLE programs) -- grant numbers REC #9814682 and REC-0126227. Converted from StarLogoT to NetLogo, 2002.
 @#$#@#$#@
 default
 true
@@ -361,30 +293,6 @@ Circle -7500403 true true 110 127 80
 Circle -7500403 true true 110 75 80
 Line -7500403 true 150 100 80 30
 Line -7500403 true 150 100 220 30
-
-bunny2
-false
-0
-Polygon -7500403 true true 61 150 76 180 91 195 103 214 90 225 76 255 90 255 105 240 132 209 151 210 181 210 195 225 196 255 181 255 180 255 165 255 166 270 211 270 241 255 240 210 255 210 255 165 225 135 210 120 165 105 91 105
-Polygon -7500403 true true 90 164 109 104 85 82 60 89 34 104 19 149 34 164 52 162 74 153
-Polygon -7500403 true true 64 98 96 87 135 45 130 15 97 36 54 86
-Polygon -7500403 true true 34 89 42 47 60 15 90 15 55 88
-Circle -16777216 true false 37 103 16
-Line -16777216 false 44 150 104 150
-Line -16777216 false 39 158 84 175
-Line -16777216 false 29 159 57 195
-Polygon -5825686 true false 15 150 30 165 30 150
-Polygon -5825686 true false 76 90 97 47 130 32
-Line -16777216 false 180 210 165 180
-Line -16777216 false 165 180 180 165
-Line -16777216 false 180 165 225 165
-Line -16777216 false 180 210 195 225
-Circle -7500403 true true 15 60 88
-Rectangle -7500403 true true 180 150 225 180
-Circle -16777216 true false 30 90 30
-Circle -7500403 true true 234 144 42
-Circle -7500403 true true 120 15 30
-Circle -7500403 true true 60 0 30
 
 butterfly
 true
@@ -544,32 +452,10 @@ Polygon -7500403 true true 135 105 90 60 45 45 75 105 135 135
 Polygon -7500403 true true 165 105 165 135 225 105 255 45 210 60
 Polygon -7500403 true true 135 90 120 45 150 15 180 45 165 90
 
-rabbit
-false
+segment
+true
 0
-Polygon -7500403 true true 61 150 76 180 91 195 103 214 91 240 76 255 61 270 76 270 106 255 132 209 151 210 181 210 211 240 196 255 181 255 166 247 151 255 166 270 211 270 241 255 240 210 270 225 285 165 256 135 226 105 166 90 91 105
-Polygon -7500403 true true 75 164 94 104 70 82 45 89 19 104 4 149 19 164 37 162 59 153
-Polygon -7500403 true true 64 98 96 87 138 26 130 15 97 36 54 86
-Polygon -7500403 true true 49 89 57 47 78 4 89 20 70 88
-Circle -16777216 true false 37 103 16
-Line -16777216 false 44 150 104 150
-Line -16777216 false 39 158 84 175
-Line -16777216 false 29 159 57 195
-Polygon -5825686 true false 0 150 15 165 15 150
-Polygon -5825686 true false 76 90 97 47 130 32
-Line -16777216 false 180 210 165 180
-Line -16777216 false 165 180 180 165
-Line -16777216 false 180 165 225 165
-Line -16777216 false 180 210 210 240
-
-sheep
-false
-0
-Rectangle -7500403 true true 151 225 180 285
-Rectangle -7500403 true true 47 225 75 285
-Rectangle -7500403 true true 15 75 210 225
-Circle -7500403 true true 135 75 150
-Circle -16777216 true false 165 76 116
+Line -7500403 true 150 150 150 0
 
 square
 false
@@ -662,17 +548,18 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.3.1
+NetLogo 5.0.3
 @#$#@#$#@
+setup repeat 4 [ step ]
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
 default
 0.0
--0.2 0 0.0 1.0
+-0.2 0 1.0 0.0
 0.0 1 1.0 0.0
-0.2 0 0.0 1.0
+0.2 0 1.0 0.0
 link direction
 true
 0

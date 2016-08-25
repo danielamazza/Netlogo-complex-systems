@@ -1,67 +1,139 @@
-breed [bunnies bunny]
-globals [last-count]
+extensions [table]
 
-Bunnies-own [old]
+globals [txt freq-table probabilty-table word-count Max-Word-Count result heads-count tails-count]
 
 to setup
   ca
-  let one-patch (patch-set patch 0 0)
-  ask one-patch [sprout-bunnies initial-population [set old false set shape "bunny2" set color white set size 4 disperse]]
+  set coin-results ""
+  set Max-Word-Count 1000  
+  set heads-count 0
+  set tails-count 0
+  crt 1 [set shape "heads" set size 10 set color gray set heading 90]
 end
 
-to reproduce
-  if (count bunnies) > 0
-  [
-    ask bunnies [ set old true ]
-    set last-count count bunnies
-    ask one-of bunnies [ hatch-bunnies how-many-to-hatch  [ disperse ] ]  ;Ok, Not too realistic to have one bunny do all the reproductive work ... but easier to code.
-    ask bunnies with [old] [die]
-    do-plotting
+to go
+  set txt coin-results
+  build-frequency-table list-of-words
+  build-probability-table 
+  sort-list
+end 
+
+to-report list-of-words
+  let $txt txt
+  set $txt word $txt " "  ; add space  for loop termination
+  let words []  ; list of values
+  while [not empty? $txt]
+  [ let n position " " $txt
+    ;show word "n: " n
+    let $item substring $txt 0 n  ; extract item
+    if not empty? $item [if member? last $item ".,?!;:" [set $item butlast $item ] ] ; strip trailing punctuation 
+    ;carefully [set $item read-from-string $item ][ ] ; convert if number
+    carefully [if member? first $item " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890" [set words lput $item words]][]  ; append to list, ingnore cr/lfs
+    set $txt substring $txt (n + 1) length $txt  ; remove $item and space
   ]
+  report words
+  print ""  
 end
 
-to-report how-many-to-hatch
-  let pop (count bunnies)
-  let new-pop (birthrate - deathrate) * (pop  - ((pop * pop) / carrying-capacity))
-  report round new-pop
+to build-frequency-table [#word]
+  set freq-table table:make
+  set probabilty-table table:make
+  set word-count 0
+  foreach #word [
+    set word-count word-count + 1  ;; find total count of words
+    if word-count >= Max-Word-Count [stop]
+    ifelse table:has-key? freq-table ?  [let i table:get freq-table ? table:put freq-table ? i + 1 ] [table:put freq-table ? 1]
+    ]
+  
 end
 
-to disperse
-  set size size * .98 set heading random 360
-  let new-x random max-pxcor
-  let new-y random max-pycor
-  let x-sign random 2
-  let y-sign random 2
-  ifelse (x-sign = 0) [set  xcor 0 - new-x] [set xcor new-x]
-  ifelse (y-sign = 0) [set ycor 0 - new-y] [set ycor new-y]
-  set old false
+to build-probability-table
+  foreach table:keys freq-table [ table:put probabilty-table ? table:get freq-table ? * (1 / word-count) ]
+  
+  ;print freq-table 
+  ;print probabilty-table 
+end 
+  
+  
+to-report H
+  let sum-plogp 0
+  foreach table:keys probabilty-table
+   [ 
+     let p table:get probabilty-table ?  
+     set sum-plogp  sum-plogp  + -1 * p * log p 2
+   ]
+   report sum-plogp
+end 
+
+to sort-list
+  let freq-list []
+  foreach table:keys freq-table [ set freq-list lput list ? table:get freq-table ?  freq-list  ] ;builds a list version of the table.
+  set freq-table table:from-list sort-by [last ?1 > last ?2] freq-list ;sort list by frequency counts and recreates table.
+end 
+
+
+to flip-fair-coin
+  set result one-of [" Heads" " Tails"]  
+  show-flip
 end
+    
+ 
+to flip-biased-coin
+  ask turtles [set label ""]
+ ifelse random 100 < ProbOfHeads [set result " Heads"] [set result " Tails"]
+ show-flip
+end 
 
-to do-plotting
-  set-current-plot "Population vs. Time"
-  plot count bunnies
-
-  set-current-plot "This year's pop. vs. last year's pop."
-  plotxy last-count count bunnies
-
+to show-flip
+  ifelse result = " Heads" [
+    repeat 5 [
+    wait .06
+    ask turtles [set shape "coin-side"]
+    wait .06
+    ask turtles [set shape "tails"]
+    wait .06
+    ask turtles [set shape "coin-side"]
+    wait .06
+    ask turtles [set shape "heads"]
+    ]
+    set heads-count heads-count + 1
+  ]
+  [
+    repeat 5 [
+    wait .06
+    ask turtles [set shape "coin-side"]
+    wait .06
+    ask turtles [set shape "tails"]
+    wait .06
+    ask turtles [set shape "coin-side"]
+    wait .06
+    ask turtles [set shape "heads"]
+    wait .06
+    ask turtles [set shape "tails"]
+    ]
+    set tails-count tails-count + 1
+  ]
+  set coin-results word coin-results result
 end
+  
+  
 @#$#@#$#@
 GRAPHICS-WINDOW
-235
-10
-736
-532
+415
+14
+758
+378
 16
 16
-14.9
+10.1
 1
 10
 1
 1
 1
 0
-0
-0
+1
+1
 1
 -16
 16
@@ -73,40 +145,24 @@ GRAPHICS-WINDOW
 ticks
 30.0
 
-TEXTBOX
-8
-10
-158
-32
-Logistic Model
-18
-95.0
+INPUTBOX
+9
+155
+395
+267
+coin-results
+NIL
 1
+0
+String
 
 BUTTON
-13
-173
-118
-206
-Reproduce
-reproduce
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-13
-132
-79
-165
-Setup
-setup\n
+78
+337
+295
+387
+Calculate Information Content
+go
 NIL
 1
 T
@@ -118,215 +174,155 @@ NIL
 1
 
 MONITOR
-45
-391
-147
-436
+101
+400
+262
+445
+Information Content (H)
+H
+4
+1
+11
+
+TEXTBOX
+11
+20
+395
+64
+Shannon Information Content of Coin Flips
+18
+95.0
+1
+
+BUTTON
+103
+64
+238
+97
+Flip Fair Coin
+flip-fair-coin
 NIL
-count bunnies
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+257
+64
+392
+97
+Flip Biased Coin
+flip-biased-coin
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+TEXTBOX
+110
+133
+278
+175
+NIL
+11
+0.0
+1
+
+SLIDER
+257
+101
+392
+134
+ProbOfHeads
+ProbOfHeads
+0
+100
+60
+1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+13
+65
+86
+98
+Setup
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+MONITOR
+44
+275
+173
+320
+Number of "Heads"
+heads-count
 17
 1
 11
 
-PLOT
-735
-12
-1094
-173
-Population vs. Time
-Time
-Population
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"" 1.0 0 -16777216 true "" "plot count turtles"
-
-SLIDER
-14
-256
-186
-289
-birthrate
-birthrate
-0
-5.0
-2
-0.1
+MONITOR
+192
+276
+312
+321
+Number of "Tails"
+tails-count
+17
 1
-NIL
-HORIZONTAL
-
-PLOT
-737
-181
-1096
-341
-This year's pop. vs. last year's pop.
-Last year's pop.
-This year's pop.
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"pen-0" 1.0 0 -7500403 true "" "plotxy last-count count bunnies"
-
-SLIDER
-14
-344
-188
-377
-carrying-capacity
-carrying-capacity
-0
-100
-50
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-14
-215
-186
-248
-initial-population
-initial-population
-0
-20
-1
-1
-1
-NIL
-HORIZONTAL
-
-TEXTBOX
-6
-45
-376
-105
-n      = (birthrate - deathrate) * (n  - (n    / k)),\n\nwhere k is the carrying capacity.
-10
-0.0
-1
-
-TEXTBOX
-13
-50
-34
-68
-t+1
-8
-0.0
-1
-
-TEXTBOX
-173
-52
-188
-70
-t
-8
-0.0
-1
-
-TEXTBOX
-199
-51
-214
-69
-t
-8
-0.0
-1
-
-TEXTBOX
-197
-42
-212
-60
-2
-8
-0.0
-1
-
-SLIDER
-13
-298
-186
-331
-deathrate
-deathrate
-0
-5.0
-0
-0.1
-1
-NIL
-HORIZONTAL
-
-PLOT
-747
-351
-947
-501
-Normalized Logistic Model
-Xt
-Xt+1
-0.0
-1.0
-0.0
-1.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plotxy last-count count bunnies"
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
 
-This model illustrates population growth using the logistic model.
+This model calculates the Shannon information content of a set of coin flips.  
+
+Shannon information content is usually expressed by the average number of bits needed to store or communicate one symbol in a message. This information content quantifies the uncertainty involved in predicting the value of a future event (or random variable). For example, the ability to correctly guess the outcome of a fair coin flip (one with two equally likely outcomes) provides less information (lower entropy, less surprising) than specifying the outcome from a roll of a die (six equally likely outcomes). Using this method we are able to precisely measure this  "surprise value" in different contexts. 
 
 ## HOW IT WORKS
 
-The model counts the number of rabbits at the end of each generation and then produces the correct number the following generation. To keep the math simple, there is no over-lapping of generations–that is, all the rabbits from one year replace themselves with offspring (according to the growth rate seting) and then perish.
-
-
-## HOW TO USE IT
-
-To use the model, press “setup” and then “reproduce”. Each time you press “reproduce” a generation of rabbits will be born.
+You can either flip a fair coin (probability of heads = 1/2) or a biased coin (probability of heads set by a slider).    Flip the coin several times to get a number of samples, and then click on "Calculate Information Content".  
 
 ## CREDITS AND REFERENCES
 
-This model is part of the Dynamics series of the Complexity Explorer project.
+This model is part of the Information Theory series of the Complexity Explorer project. 
+ 
+Main Author: John Balwit
 
-Main Author:  John Balwit
-
-Contributions from: Melanie Mitchell
+Contributions from:  Melanie Mitchell
 
 Netlogo:  Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
 
 
 ## HOW TO CITE
 
-If you use this model, please cite it as: "Logistic Population Growth" model, Complexity Explorer project, http://complexityexplorer.org
+If you use this model, please cite it as: "Coin-Flip Information Content" model, Complexity Explorer project, http://complexityexplorer.org
 
 ## COPYRIGHT AND LICENSE
 
-Copyright 2013 Santa Fe Institute.
+Copyright 2014 Santa Fe Institute.
 
-This model is licensed by the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 License ( http://creativecommons.org/licenses/by-nc-nd/3.0/ ). This states that you may copy, distribute, and transmit the work under the condition that you give attribution to ComplexityExplorer.org, and your use is for non-commercial purposes.
-
+This model is licensed by the Creative Commons Attribution-NonCommercial-ShareAlike  License ( http://creativecommons.org/licenses/by-nc-sa/4.0/ ). This states that you may copy, distribute, and transmit the work under the condition that you give attribution to ComplexityExplorer.org, your use is for non-commercial purposes, and you release any work derived from this work under the same license agreement.
 @#$#@#$#@
 default
 true
@@ -362,30 +358,6 @@ Circle -7500403 true true 110 75 80
 Line -7500403 true 150 100 80 30
 Line -7500403 true 150 100 220 30
 
-bunny2
-false
-0
-Polygon -7500403 true true 61 150 76 180 91 195 103 214 90 225 76 255 90 255 105 240 132 209 151 210 181 210 195 225 196 255 181 255 180 255 165 255 166 270 211 270 241 255 240 210 255 210 255 165 225 135 210 120 165 105 91 105
-Polygon -7500403 true true 90 164 109 104 85 82 60 89 34 104 19 149 34 164 52 162 74 153
-Polygon -7500403 true true 64 98 96 87 135 45 130 15 97 36 54 86
-Polygon -7500403 true true 34 89 42 47 60 15 90 15 55 88
-Circle -16777216 true false 37 103 16
-Line -16777216 false 44 150 104 150
-Line -16777216 false 39 158 84 175
-Line -16777216 false 29 159 57 195
-Polygon -5825686 true false 15 150 30 165 30 150
-Polygon -5825686 true false 76 90 97 47 130 32
-Line -16777216 false 180 210 165 180
-Line -16777216 false 165 180 180 165
-Line -16777216 false 180 165 225 165
-Line -16777216 false 180 210 195 225
-Circle -7500403 true true 15 60 88
-Rectangle -7500403 true true 180 150 225 180
-Circle -16777216 true false 30 90 30
-Circle -7500403 true true 234 144 42
-Circle -7500403 true true 120 15 30
-Circle -7500403 true true 60 0 30
-
 butterfly
 true
 0
@@ -418,6 +390,12 @@ false
 0
 Circle -7500403 true true 0 0 300
 Circle -16777216 true false 30 30 240
+
+coin-side
+true
+0
+Line -7500403 true 150 0 150 300
+Rectangle -7500403 true true 135 0 165 300
 
 cow
 false
@@ -494,6 +472,16 @@ Circle -16777216 true false 113 68 74
 Polygon -10899396 true false 189 233 219 188 249 173 279 188 234 218
 Polygon -10899396 true false 180 255 150 210 105 210 75 240 135 240
 
+heads
+false
+0
+Circle -7500403 true true 3 3 294
+Circle -16777216 true false 33 33 234
+Circle -7500403 true true 90 105 30
+Circle -7500403 true true 180 105 30
+Polygon -7500403 true true 135 150 150 180 165 150
+Polygon -7500403 true true 120 210 180 210 165 225 135 225
+
 house
 false
 0
@@ -507,11 +495,6 @@ false
 0
 Polygon -7500403 true true 150 210 135 195 120 210 60 210 30 195 60 180 60 165 15 135 30 120 15 105 40 104 45 90 60 90 90 105 105 120 120 120 105 60 120 60 135 30 150 15 165 30 180 60 195 60 180 120 195 120 210 105 240 90 255 90 263 104 285 105 270 120 285 135 240 165 240 180 270 195 240 210 180 210 165 195
 Polygon -7500403 true true 135 195 135 240 120 255 105 255 105 285 135 285 165 240 165 195
-
-line
-true
-0
-Line -7500403 true 150 0 150 300
 
 line half
 true
@@ -544,24 +527,6 @@ Polygon -7500403 true true 135 105 90 60 45 45 75 105 135 135
 Polygon -7500403 true true 165 105 165 135 225 105 255 45 210 60
 Polygon -7500403 true true 135 90 120 45 150 15 180 45 165 90
 
-rabbit
-false
-0
-Polygon -7500403 true true 61 150 76 180 91 195 103 214 91 240 76 255 61 270 76 270 106 255 132 209 151 210 181 210 211 240 196 255 181 255 166 247 151 255 166 270 211 270 241 255 240 210 270 225 285 165 256 135 226 105 166 90 91 105
-Polygon -7500403 true true 75 164 94 104 70 82 45 89 19 104 4 149 19 164 37 162 59 153
-Polygon -7500403 true true 64 98 96 87 138 26 130 15 97 36 54 86
-Polygon -7500403 true true 49 89 57 47 78 4 89 20 70 88
-Circle -16777216 true false 37 103 16
-Line -16777216 false 44 150 104 150
-Line -16777216 false 39 158 84 175
-Line -16777216 false 29 159 57 195
-Polygon -5825686 true false 0 150 15 165 15 150
-Polygon -5825686 true false 76 90 97 47 130 32
-Line -16777216 false 180 210 165 180
-Line -16777216 false 165 180 180 165
-Line -16777216 false 180 165 225 165
-Line -16777216 false 180 210 210 240
-
 sheep
 false
 0
@@ -586,6 +551,19 @@ star
 false
 0
 Polygon -7500403 true true 151 1 185 108 298 108 207 175 242 282 151 216 59 282 94 175 3 108 116 108
+
+tails
+false
+0
+Circle -7500403 true true 3 3 294
+Circle -16777216 true false 30 30 240
+Line -7500403 true 150 285 150 15
+Line -7500403 true 15 150 285 150
+Circle -7500403 true true 120 120 60
+Line -7500403 true 216 40 79 269
+Line -7500403 true 40 84 269 221
+Line -7500403 true 40 216 269 79
+Line -7500403 true 84 40 221 269
 
 target
 false
@@ -655,6 +633,15 @@ Line -7500403 true 40 84 269 221
 Line -7500403 true 40 216 269 79
 Line -7500403 true 84 40 221 269
 
+wolf
+false
+0
+Polygon -7500403 true true 135 285 195 285 270 90 30 90 105 285
+Polygon -7500403 true true 270 90 225 15 180 90
+Polygon -7500403 true true 30 90 75 15 120 90
+Circle -1 true false 183 138 24
+Circle -1 true false 93 138 24
+
 x
 false
 0
@@ -662,7 +649,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.3.1
+NetLogo 5.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

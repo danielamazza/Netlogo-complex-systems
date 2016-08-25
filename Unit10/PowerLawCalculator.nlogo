@@ -1,72 +1,28 @@
-breed [bunnies bunny]
-globals [last-count]
-
-Bunnies-own [old]
-
-to setup
-  ca
-  let one-patch (patch-set patch 0 0)
-  ask one-patch [sprout-bunnies initial-population [set old false set shape "bunny2" set color white set size 4 disperse]]
-end
-
-to reproduce
-  if (count bunnies) > 0
-  [
-    ask bunnies [ set old true ]
-    set last-count count bunnies
-    ask one-of bunnies [ hatch-bunnies how-many-to-hatch  [ disperse ] ]  ;Ok, Not too realistic to have one bunny do all the reproductive work ... but easier to code.
-    ask bunnies with [old] [die]
-    do-plotting
-  ]
-end
-
-to-report how-many-to-hatch
-  let pop (count bunnies)
-  let new-pop (birthrate - deathrate) * (pop  - ((pop * pop) / carrying-capacity))
-  report round new-pop
-end
-
-to disperse
-  set size size * .98 set heading random 360
-  let new-x random max-pxcor
-  let new-y random max-pycor
-  let x-sign random 2
-  let y-sign random 2
-  ifelse (x-sign = 0) [set  xcor 0 - new-x] [set xcor new-x]
-  ifelse (y-sign = 0) [set ycor 0 - new-y] [set ycor new-y]
-  set old false
-end
-
-to do-plotting
-  set-current-plot "Population vs. Time"
-  plot count bunnies
-
-  set-current-plot "This year's pop. vs. last year's pop."
-  plotxy last-count count bunnies
-
+to-report Y
+  report C * (X ^ alpha)
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-235
+394
 10
-736
-532
+639
+203
 16
-16
-14.9
+15
+5.242424242424242
 1
 10
 1
 1
 1
 0
-0
-0
+1
+1
 1
 -16
 16
--16
-16
+-15
+15
 0
 0
 1
@@ -74,259 +30,87 @@ ticks
 30.0
 
 TEXTBOX
-8
-10
-158
-32
-Logistic Model
-18
-95.0
+12
+55
+387
+99
+Y = C * (X raised to the alpha power)
+13
+0.0
 1
 
-BUTTON
-13
-173
-118
-206
-Reproduce
-reproduce
-NIL
+INPUTBOX
+103
+77
+203
+137
+X
 1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
 1
-
-BUTTON
-13
-132
-79
-165
-Setup
-setup\n
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
+0
+Number
 
 MONITOR
-45
-391
-147
-436
+10
+143
+175
+196
 NIL
-count bunnies
-17
-1
-11
-
-PLOT
-735
-12
-1094
-173
-Population vs. Time
-Time
-Population
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"" 1.0 0 -16777216 true "" "plot count turtles"
-
-SLIDER
-14
-256
-186
-289
-birthrate
-birthrate
-0
-5.0
+Y
 2
-0.1
 1
-NIL
-HORIZONTAL
-
-PLOT
-737
-181
-1096
-341
-This year's pop. vs. last year's pop.
-Last year's pop.
-This year's pop.
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"pen-0" 1.0 0 -7500403 true "" "plotxy last-count count bunnies"
-
-SLIDER
-14
-344
-188
-377
-carrying-capacity
-carrying-capacity
-0
-100
-50
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-14
-215
-186
-248
-initial-population
-initial-population
-0
-20
-1
-1
-1
-NIL
-HORIZONTAL
+13
 
 TEXTBOX
 6
-45
-376
-105
-n      = (birthrate - deathrate) * (n  - (n    / k)),\n\nwhere k is the carrying capacity.
 10
-0.0
-1
-
-TEXTBOX
-13
-50
-34
-68
-t+1
-8
-0.0
-1
-
-TEXTBOX
-173
-52
-188
-70
-t
-8
-0.0
-1
-
-TEXTBOX
-199
-51
-214
-69
-t
-8
-0.0
-1
-
-TEXTBOX
-197
+313
 42
-212
-60
-2
-8
-0.0
-1
-
-SLIDER
+See Info tab for how to use this calculator. 
 13
-298
-186
-331
-deathrate
-deathrate
-0
-5.0
-0
-0.1
+0.0
 1
-NIL
-HORIZONTAL
 
-PLOT
-747
-351
-947
-501
-Normalized Logistic Model
-Xt
-Xt+1
+INPUTBOX
+7
+77
+98
+137
+C
+1
+1
+0
+Number
+
+INPUTBOX
+208
+77
+301
+137
+alpha
+1
+1
+0
+Number
+
+TEXTBOX
+211
+141
+421
+169
+Enter a number such as .75  \nor -.25
+11
 0.0
-1.0
-0.0
-1.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plotxy last-count count bunnies"
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
-
-This model illustrates population growth using the logistic model.
-
-## HOW IT WORKS
-
-The model counts the number of rabbits at the end of each generation and then produces the correct number the following generation. To keep the math simple, there is no over-lapping of generations–that is, all the rabbits from one year replace themselves with offspring (according to the growth rate seting) and then perish.
+This provides a simple power-law calculator.   It calculates Y = C * (X ^ {alpha}), that is, C times X raised to the alpha power. 
 
 
 ## HOW TO USE IT
 
-To use the model, press “setup” and then “reproduce”. Each time you press “reproduce” a generation of rabbits will be born.
-
-## CREDITS AND REFERENCES
-
-This model is part of the Dynamics series of the Complexity Explorer project.
-
-Main Author:  John Balwit
-
-Contributions from: Melanie Mitchell
-
-Netlogo:  Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
-
-
-## HOW TO CITE
-
-If you use this model, please cite it as: "Logistic Population Growth" model, Complexity Explorer project, http://complexityexplorer.org
-
-## COPYRIGHT AND LICENSE
-
-Copyright 2013 Santa Fe Institute.
-
-This model is licensed by the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 License ( http://creativecommons.org/licenses/by-nc-nd/3.0/ ). This states that you may copy, distribute, and transmit the work under the condition that you give attribution to ComplexityExplorer.org, and your use is for non-commercial purposes.
-
+Type numbers in the C, X, and alpha boxes.  The corresponding value of Y will appear in the Y box.    If you change the number in any of the input boxes, hit the "return" key to recalculate Y.  
 @#$#@#$#@
 default
 true
@@ -361,30 +145,6 @@ Circle -7500403 true true 110 127 80
 Circle -7500403 true true 110 75 80
 Line -7500403 true 150 100 80 30
 Line -7500403 true 150 100 220 30
-
-bunny2
-false
-0
-Polygon -7500403 true true 61 150 76 180 91 195 103 214 90 225 76 255 90 255 105 240 132 209 151 210 181 210 195 225 196 255 181 255 180 255 165 255 166 270 211 270 241 255 240 210 255 210 255 165 225 135 210 120 165 105 91 105
-Polygon -7500403 true true 90 164 109 104 85 82 60 89 34 104 19 149 34 164 52 162 74 153
-Polygon -7500403 true true 64 98 96 87 135 45 130 15 97 36 54 86
-Polygon -7500403 true true 34 89 42 47 60 15 90 15 55 88
-Circle -16777216 true false 37 103 16
-Line -16777216 false 44 150 104 150
-Line -16777216 false 39 158 84 175
-Line -16777216 false 29 159 57 195
-Polygon -5825686 true false 15 150 30 165 30 150
-Polygon -5825686 true false 76 90 97 47 130 32
-Line -16777216 false 180 210 165 180
-Line -16777216 false 165 180 180 165
-Line -16777216 false 180 165 225 165
-Line -16777216 false 180 210 195 225
-Circle -7500403 true true 15 60 88
-Rectangle -7500403 true true 180 150 225 180
-Circle -16777216 true false 30 90 30
-Circle -7500403 true true 234 144 42
-Circle -7500403 true true 120 15 30
-Circle -7500403 true true 60 0 30
 
 butterfly
 true
@@ -544,32 +304,21 @@ Polygon -7500403 true true 135 105 90 60 45 45 75 105 135 135
 Polygon -7500403 true true 165 105 165 135 225 105 255 45 210 60
 Polygon -7500403 true true 135 90 120 45 150 15 180 45 165 90
 
-rabbit
-false
-0
-Polygon -7500403 true true 61 150 76 180 91 195 103 214 91 240 76 255 61 270 76 270 106 255 132 209 151 210 181 210 211 240 196 255 181 255 166 247 151 255 166 270 211 270 241 255 240 210 270 225 285 165 256 135 226 105 166 90 91 105
-Polygon -7500403 true true 75 164 94 104 70 82 45 89 19 104 4 149 19 164 37 162 59 153
-Polygon -7500403 true true 64 98 96 87 138 26 130 15 97 36 54 86
-Polygon -7500403 true true 49 89 57 47 78 4 89 20 70 88
-Circle -16777216 true false 37 103 16
-Line -16777216 false 44 150 104 150
-Line -16777216 false 39 158 84 175
-Line -16777216 false 29 159 57 195
-Polygon -5825686 true false 0 150 15 165 15 150
-Polygon -5825686 true false 76 90 97 47 130 32
-Line -16777216 false 180 210 165 180
-Line -16777216 false 165 180 180 165
-Line -16777216 false 180 165 225 165
-Line -16777216 false 180 210 210 240
-
 sheep
 false
-0
-Rectangle -7500403 true true 151 225 180 285
-Rectangle -7500403 true true 47 225 75 285
-Rectangle -7500403 true true 15 75 210 225
-Circle -7500403 true true 135 75 150
-Circle -16777216 true false 165 76 116
+15
+Circle -1 true true 203 65 88
+Circle -1 true true 70 65 162
+Circle -1 true true 150 105 120
+Polygon -7500403 true false 218 120 240 165 255 165 278 120
+Circle -7500403 true false 214 72 67
+Rectangle -1 true true 164 223 179 298
+Polygon -1 true true 45 285 30 285 30 240 15 195 45 210
+Circle -1 true true 3 83 150
+Rectangle -1 true true 65 221 80 296
+Polygon -1 true true 195 285 210 285 210 240 240 210 195 210
+Polygon -7500403 true false 276 85 285 105 302 99 294 83
+Polygon -7500403 true false 219 85 210 105 193 99 201 83
 
 square
 false
@@ -655,6 +404,13 @@ Line -7500403 true 40 84 269 221
 Line -7500403 true 40 216 269 79
 Line -7500403 true 84 40 221 269
 
+wolf
+false
+0
+Polygon -16777216 true false 253 133 245 131 245 133
+Polygon -7500403 true true 2 194 13 197 30 191 38 193 38 205 20 226 20 257 27 265 38 266 40 260 31 253 31 230 60 206 68 198 75 209 66 228 65 243 82 261 84 268 100 267 103 261 77 239 79 231 100 207 98 196 119 201 143 202 160 195 166 210 172 213 173 238 167 251 160 248 154 265 169 264 178 247 186 240 198 260 200 271 217 271 219 262 207 258 195 230 192 198 210 184 227 164 242 144 259 145 284 151 277 141 293 140 299 134 297 127 273 119 270 105
+Polygon -7500403 true true -1 195 14 180 36 166 40 153 53 140 82 131 134 133 159 126 188 115 227 108 236 102 238 98 268 86 269 92 281 87 269 103 269 113
+
 x
 false
 0
@@ -662,7 +418,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.3.1
+NetLogo 5.0.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -670,9 +426,9 @@ NetLogo 5.3.1
 @#$#@#$#@
 default
 0.0
--0.2 0 0.0 1.0
+-0.2 0 1.0 0.0
 0.0 1 1.0 0.0
-0.2 0 0.0 1.0
+0.2 0 1.0 0.0
 link direction
 true
 0

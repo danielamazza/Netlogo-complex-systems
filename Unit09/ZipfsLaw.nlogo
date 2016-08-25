@@ -1,59 +1,191 @@
-breed [bunnies bunny]
-globals [last-count]
-
-Bunnies-own [old]
-
-to setup
-  ca
-  let one-patch (patch-set patch 0 0)
-  ask one-patch [sprout-bunnies initial-population [set old false set shape "bunny2" set color white set size 4 disperse]]
-end
-
-to reproduce
-  if (count bunnies) > 0
-  [
-    ask bunnies [ set old true ]
-    set last-count count bunnies
-    ask one-of bunnies [ hatch-bunnies how-many-to-hatch  [ disperse ] ]  ;Ok, Not too realistic to have one bunny do all the reproductive work ... but easier to code.
-    ask bunnies with [old] [die]
-    do-plotting
+globals [
+  patch-data
+  string 
+  next-space
+  current-word
+  rank
+  x
   ]
+breed [power-points power-point]
+breed [normal-points normal-point]
+breed [utterances utterance]   ; main turtles used in program
+utterances-own [
+  name
+  word-length
+  number
+  number-like-lengths
+  delete?
+]
+
+breed [x-axis-labels x-axis-label] ; only used for drawing plot
+breed [y-axis-labels y-axis-label]
+breed [x-axis]
+breed [y-axis]
+
+
+to reset
+  ca
+  set input-text ""
+  ask patches [set pcolor white]
+end 
+
+  
+to setup-text
+  ca
+  reset-ticks
+  ask patches [set pcolor white]
+  set rank [ ]
+  draw-plot
+  set string word input-text " "
+  define-utterances
+  tick
+end
+  
+  
+  
+  to define-utterances
+  while [length string > 0] [
+    set next-space position " " string
+    set current-word substring string 0 ( next-space )
+    
+      let i length current-word + 1
+      while [ i > 0 ] [
+      set string but-first string
+      set i i - 1
+    ]
+    create-utterances  1 [ 
+      set name current-word
+      set label current-word
+      set delete? false
+      set label-color black
+      set size .1
+      
+      set word-length length name
+      ]
+        ]
+    
+  end
+  
+
+ to plot-by-frequency
+   hide-words
+   count-like-words
+   elim-redundant
+   let s 1
+   let u count utterances
+   ask utterances [set delete? false]
+   while [s <= u]
+   [ifelse count utterances with [delete? = false] > 0 [
+   ask one-of utterances with [delete? = false] [if count utterances with [delete? = false and [number] of myself < [number] of self] = 0
+   [ifelse  s + 2 > max-pxcor  [die set s s + 1]
+   [setxy s + 2 number + 2 set delete? true 
+    set s s + 1]]]]
+   [stop]
+ ]
+  
+ end
+ 
+   to count-like-words
+   ask utterances
+  [ set number count other utterances with [[name] of myself = [name] of self] + 1]
+end
+  
+  to elim-redundant
+    ask utterances [if count other utterances with [[name] of myself = [name] of self] > 0 [die]]
+end
+ 
+
+
+to hide-words
+  ask utterances [set label " "  set shape "circle" set size 1] 
+  end
+
+to show-words
+  ask utterances [set label name   set shape "circle" set size .1] 
+  end
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;fit with curve;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+to fit-curve
+  ask power-points [die]
+  ask patches with [ (pycor = 2) and (pxcor < (world-width - 2)) and (pxcor > 2)]
+  [sprout-power-points 1]
+  ask power-points [set ycor (n / ((xcor ) )) + 2 
+    set size 1 set shape "circle"  set color blue ]
+  display
+  end
+
+to hide-curves
+  ask power-points [set size .1]
 end
 
-to-report how-many-to-hatch
-  let pop (count bunnies)
-  let new-pop (birthrate - deathrate) * (pop  - ((pop * pop) / carrying-capacity))
-  report round new-pop
+to show-curves
+  ask power-points [set size 1]
 end
 
-to disperse
-  set size size * .98 set heading random 360
-  let new-x random max-pxcor
-  let new-y random max-pycor
-  let x-sign random 2
-  let y-sign random 2
-  ifelse (x-sign = 0) [set  xcor 0 - new-x] [set xcor new-x]
-  ifelse (y-sign = 0) [set ycor 0 - new-y] [set ycor new-y]
-  set old false
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;Data and plotting proceedures;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+to load-sample
+  set string input-text
+  remove-punctuation
 end
 
-to do-plotting
-  set-current-plot "Population vs. Time"
-  plot count bunnies
 
-  set-current-plot "This year's pop. vs. last year's pop."
-  plotxy last-count count bunnies
+to remove-punctuation
+  set string remove "," string
+  set string remove "." string
+  set string remove "(" string
+  set string remove ")" string
+  set string remove "?" string
+  set string remove "!" string
+  set string remove "-" string
+  set string remove "/" string
+  set string remove ":" string
+  set string remove ";" string
+  set string word  string " " 
+end
 
+to draw-plot
+    ask patch 2 2 [ 
+    sprout-y-axis 1 [set size 1 set heading 0 set color black pd    ]
+    sprout-x-axis 1 [set size 1 set heading 90 set color black pd   ]
+  ]
+  repeat max-pxcor - 3 [
+      ask x-axis [display fd 1  ]
+  ]
+  
+   repeat max-pycor - 3 [
+      ask y-axis [display fd 1  ]
+  ] 
+  ask patch 40 .25  [sprout-x-axis-labels 1 [ set label "R  a  n  k" set size .4 ]]
+  ask patch .5 36  [sprout-y-axis-labels 1 [ set label "F" set size .4 ]]
+  ask patch .5 34  [sprout-y-axis-labels 1 [ set label "r" set size .4 ]]
+  ask patch .5 32  [sprout-y-axis-labels 1 [ set label "e" set size .4 ]]
+  ask patch .5 30  [sprout-y-axis-labels 1 [ set label "q" set size .4 ]]
+  ask patch .5 28  [sprout-y-axis-labels 1 [ set label "u" set size .4 ]]
+  ask patch .5 26  [sprout-y-axis-labels 1 [ set label "e" set size .4 ]]
+  ask patch .5 24  [sprout-y-axis-labels 1 [ set label "n" set size .4 ]]
+  ask patch .5 22  [sprout-y-axis-labels 1 [ set label "c" set size .4 ]]
+  ask patch .5 20  [sprout-y-axis-labels 1 [ set label "y" set size .4 ]]
+  ask x-axis-labels [set label-color black]
+  ask y-axis-labels [set label-color black]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-235
-10
-736
-532
-16
-16
-14.9
+337
+38
+1054
+367
+-1
+-1
+5.84314
 1
 10
 1
@@ -61,272 +193,202 @@ GRAPHICS-WINDOW
 1
 0
 0
-0
 1
--16
-16
--16
-16
+1
+0
+120
+0
+50
 0
 0
 1
 ticks
 30.0
 
+BUTTON
+25
+356
+181
+406
+plot-by-frequency
+plot-by-frequency
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+229
+377
+341
+410
+NIL
+fit-curve
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+229
+409
+341
+442
+n
+n
+-100
+120
+40.62
+.01
+1
+NIL
+HORIZONTAL
+
 TEXTBOX
-8
+253
+447
+320
+467
+y = n * 1/x
+11
+0.0
+0
+
+BUTTON
+228
+303
+333
+336
+hide-curve
+hide-curves
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+228
+335
+333
+368
+show-curve
+show-curves
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+TEXTBOX
+40
 10
-158
+190
 32
-Logistic Model
+Zipf's Law
 18
 95.0
 1
 
-BUTTON
-13
-173
-118
-206
-Reproduce
-reproduce
+INPUTBOX
+29
+40
+323
+299
+input-text
 NIL
 1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-13
-132
-79
-165
-Setup
-setup\n
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-MONITOR
-45
-391
-147
-436
-NIL
-count bunnies
-17
-1
-11
-
-PLOT
-735
-12
-1094
-173
-Population vs. Time
-Time
-Population
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"" 1.0 0 -16777216 true "" "plot count turtles"
-
-SLIDER
-14
-256
-186
-289
-birthrate
-birthrate
 0
-5.0
-2
-0.1
-1
-NIL
-HORIZONTAL
+String
 
-PLOT
-737
+BUTTON
+25
+406
 181
-1096
-341
-This year's pop. vs. last year's pop.
-Last year's pop.
-This year's pop.
-0.0
-10.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"pen-0" 1.0 0 -7500403 true "" "plotxy last-count count bunnies"
-
-SLIDER
-14
-344
-188
-377
-carrying-capacity
-carrying-capacity
-0
-100
-50
-1
-1
+458
 NIL
-HORIZONTAL
-
-SLIDER
-14
-215
-186
-248
-initial-population
-initial-population
-0
-20
-1
-1
-1
+reset
 NIL
-HORIZONTAL
-
-TEXTBOX
-6
-45
-376
-105
-n      = (birthrate - deathrate) * (n  - (n    / k)),\n\nwhere k is the carrying capacity.
-10
-0.0
 1
-
-TEXTBOX
-13
-50
-34
-68
-t+1
-8
-0.0
-1
-
-TEXTBOX
-173
-52
-188
-70
-t
-8
-0.0
-1
-
-TEXTBOX
-199
-51
-214
-69
-t
-8
-0.0
-1
-
-TEXTBOX
-197
-42
-212
-60
-2
-8
-0.0
-1
-
-SLIDER
-13
-298
-186
-331
-deathrate
-deathrate
-0
-5.0
-0
-0.1
-1
+T
+OBSERVER
 NIL
-HORIZONTAL
+NIL
+NIL
+NIL
+1
 
-PLOT
-747
-351
-947
-501
-Normalized Logistic Model
-Xt
-Xt+1
-0.0
-1.0
-0.0
-1.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plotxy last-count count bunnies"
+BUTTON
+26
+306
+178
+358
+NIL
+setup-text
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
 
-This model illustrates population growth using the logistic model.
+(a general understanding of what the model is trying to show or explain)
 
 ## HOW IT WORKS
 
-The model counts the number of rabbits at the end of each generation and then produces the correct number the following generation. To keep the math simple, there is no over-lapping of generations–that is, all the rabbits from one year replace themselves with offspring (according to the growth rate seting) and then perish.
-
+(what rules the agents use to create the overall behavior of the model)
 
 ## HOW TO USE IT
 
-To use the model, press “setup” and then “reproduce”. Each time you press “reproduce” a generation of rabbits will be born.
+(how to use the model, including a description of each of the items in the Interface tab)
+
+## THINGS TO NOTICE
+
+(suggested things for the user to notice while running the model)
+
+## THINGS TO TRY
+
+(suggested things for the user to try to do (move sliders, switches, etc.) with the model)
+
+## EXTENDING THE MODEL
+
+(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
+
+## NETLOGO FEATURES
+
+(interesting or unusual features of NetLogo that the model uses, particularly in the Code tab; or where workarounds were needed for missing features)
+
+## RELATED MODELS
+
+(models in the NetLogo Models Library and elsewhere which are of related interest)
 
 ## CREDITS AND REFERENCES
 
-This model is part of the Dynamics series of the Complexity Explorer project.
-
-Main Author:  John Balwit
-
-Contributions from: Melanie Mitchell
-
-Netlogo:  Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
-
-
-## HOW TO CITE
-
-If you use this model, please cite it as: "Logistic Population Growth" model, Complexity Explorer project, http://complexityexplorer.org
-
-## COPYRIGHT AND LICENSE
-
-Copyright 2013 Santa Fe Institute.
-
-This model is licensed by the Creative Commons Attribution-NonCommercial-NoDerivs 3.0 License ( http://creativecommons.org/licenses/by-nc-nd/3.0/ ). This states that you may copy, distribute, and transmit the work under the condition that you give attribution to ComplexityExplorer.org, and your use is for non-commercial purposes.
-
+(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
 @#$#@#$#@
 default
 true
@@ -361,30 +423,6 @@ Circle -7500403 true true 110 127 80
 Circle -7500403 true true 110 75 80
 Line -7500403 true 150 100 80 30
 Line -7500403 true 150 100 220 30
-
-bunny2
-false
-0
-Polygon -7500403 true true 61 150 76 180 91 195 103 214 90 225 76 255 90 255 105 240 132 209 151 210 181 210 195 225 196 255 181 255 180 255 165 255 166 270 211 270 241 255 240 210 255 210 255 165 225 135 210 120 165 105 91 105
-Polygon -7500403 true true 90 164 109 104 85 82 60 89 34 104 19 149 34 164 52 162 74 153
-Polygon -7500403 true true 64 98 96 87 135 45 130 15 97 36 54 86
-Polygon -7500403 true true 34 89 42 47 60 15 90 15 55 88
-Circle -16777216 true false 37 103 16
-Line -16777216 false 44 150 104 150
-Line -16777216 false 39 158 84 175
-Line -16777216 false 29 159 57 195
-Polygon -5825686 true false 15 150 30 165 30 150
-Polygon -5825686 true false 76 90 97 47 130 32
-Line -16777216 false 180 210 165 180
-Line -16777216 false 165 180 180 165
-Line -16777216 false 180 165 225 165
-Line -16777216 false 180 210 195 225
-Circle -7500403 true true 15 60 88
-Rectangle -7500403 true true 180 150 225 180
-Circle -16777216 true false 30 90 30
-Circle -7500403 true true 234 144 42
-Circle -7500403 true true 120 15 30
-Circle -7500403 true true 60 0 30
 
 butterfly
 true
@@ -544,24 +582,6 @@ Polygon -7500403 true true 135 105 90 60 45 45 75 105 135 135
 Polygon -7500403 true true 165 105 165 135 225 105 255 45 210 60
 Polygon -7500403 true true 135 90 120 45 150 15 180 45 165 90
 
-rabbit
-false
-0
-Polygon -7500403 true true 61 150 76 180 91 195 103 214 91 240 76 255 61 270 76 270 106 255 132 209 151 210 181 210 211 240 196 255 181 255 166 247 151 255 166 270 211 270 241 255 240 210 270 225 285 165 256 135 226 105 166 90 91 105
-Polygon -7500403 true true 75 164 94 104 70 82 45 89 19 104 4 149 19 164 37 162 59 153
-Polygon -7500403 true true 64 98 96 87 138 26 130 15 97 36 54 86
-Polygon -7500403 true true 49 89 57 47 78 4 89 20 70 88
-Circle -16777216 true false 37 103 16
-Line -16777216 false 44 150 104 150
-Line -16777216 false 39 158 84 175
-Line -16777216 false 29 159 57 195
-Polygon -5825686 true false 0 150 15 165 15 150
-Polygon -5825686 true false 76 90 97 47 130 32
-Line -16777216 false 180 210 165 180
-Line -16777216 false 165 180 180 165
-Line -16777216 false 180 165 225 165
-Line -16777216 false 180 210 210 240
-
 sheep
 false
 0
@@ -662,7 +682,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.3.1
+NetLogo 5.1.0
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
