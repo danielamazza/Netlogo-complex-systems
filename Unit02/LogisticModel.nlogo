@@ -274,24 +274,6 @@ deathrate
 NIL
 HORIZONTAL
 
-PLOT
-747
-351
-947
-501
-Normalized Logistic Model
-Xt
-Xt+1
-0.0
-1.0
-0.0
-1.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "plotxy last-count count bunnies"
-
 @#$#@#$#@
 ## WHAT IS IT?
 
